@@ -19,7 +19,6 @@ sheet['E1']='Event'
 sheet['I1']='Winner'
 
 row_index = 2
-page_counter = 0
 
 try:
     while True:
