@@ -2,25 +2,29 @@ import time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 import openpyxl
+from openpyxl.styles import Alignment
 
 brows = webdriver.Chrome()
-target_url="https://ethglobal.com/showcase"
+target_url = "https://ethglobal.com/showcase"
 
-index = 0
 brows.get(target_url)
 workbook = openpyxl.Workbook()
 
 sheet = workbook.active
 
-sheet['A1'] = 'Name'
-sheet['B1'] = 'URL'
-sheet['C1'] = 'Description'
-sheet['E1']='Event'
-sheet['I1']='Winner'
+headers = ['Name', 'URL', 'Description', 'Event', 'Winner']
+sheet.append(headers)
 
-row_index = 2
+column_widths = {'A': 30, 'B': 20, 'C': 50, 'D': 20, 'E': 20, 'I': 20}
+for col, width in column_widths.items():
+    sheet.column_dimensions[col].width = width
+
+for row in sheet.iter_rows():
+    for cell in row:
+        cell.alignment = Alignment(wrap_text=True)
 
 try:
+    index = 0
     while True:
         elements = brows.find_elements(By.XPATH, '//*[@class="block border-2 border-black rounded overflow-hidden relative"]')
 
@@ -39,48 +43,43 @@ try:
             except:
                 break
 
+        project_row_index = sheet.max_row + 1
+
         elements[index].click()
         time.sleep(3)
 
-        parsed_names = brows.find_elements(By.XPATH, '//*[@class="text-4xl lg:text-5xl max-w-2xl mb-4"]')
-        for name in parsed_names:
-            sheet[f'A{row_index}'] = name.text
-            row_index += 1
+        name = brows.find_element(By.XPATH, '//*[@class="text-4xl lg:text-5xl max-w-2xl mb-4"]').text
+        sheet[f'A{project_row_index}'] = name
 
-            parsed_url = brows.find_element(By.XPATH, '//*[contains(text(),"Source Code")]')
-            href=parsed_url.get_attribute('href')
-            if href =='https://github.com/':
-                sheet[f'B{row_index}'] = 'URL does not exist'
-            else:
-                sheet[f'B{row_index}'] = href
-
-        parsed_descriptions = brows.find_elements(By.XPATH,'/html/body/div[1]/div/div[2]/div/div[2]/div[1]/div[2]/div[1]/p[1]')
-        for description in parsed_descriptions:
-            sheet[f'C{row_index}'] = description.text
-            row_index += 1
-
-        parsed_events=brows.find_elements(By.XPATH,'//*[contains(@class,"inline-flex overflow")]')
         try:
-            for event in parsed_events:
-                sheet[f'E{row_index}']=event.text
-                row_index += 1
+            parsed_url = brows.find_element(By.XPATH, '//*[contains(text(),"Source Code")]')
+            href = parsed_url.get_attribute('href')
+            url = href if href != 'https://github.com/' else 'URL does not exist'
         except:
-            print('zalupaV2')
+            url = 'URL not found'
+        sheet[f'B{project_row_index}'] = url
 
-        parsed_winners=brows.find_elements(By.XPATH,'//*[@class="font-normal"]')
+        description = brows.find_element(By.XPATH, '/html/body/div[1]/div/div[2]/div/div[2]/div[1]/div[2]/div[1]/p[1]').text
+        sheet[f'C{project_row_index}'] = description
+
+        event = brows.find_element(By.XPATH, '//*[contains(@class,"inline-flex overflow")]').text
+        sheet[f'D{project_row_index}'] = event
+
+        parsed_winners = brows.find_elements(By.XPATH, '//*[@class="font-normal"]')
         if parsed_winners:
+            winners_text = ""
             for winner in parsed_winners:
-                sheet[f'I{row_index}'] = winner.text
-                row_index += 1
+                winners_text += winner.text + " "
+            winners_text = winners_text.strip()
+            sheet[f'I{project_row_index}'] = winners_text
         else:
-            sheet[f'I{row_index}'] = "Nothing in Winner"
-            row_index += 1
+            sheet[f'I{project_row_index}'] = "Nothing in Winner"
 
         brows.back()
         time.sleep(5)
         index += 1
 
-except:
+except :
     print('zalupa')
 
 finally:
